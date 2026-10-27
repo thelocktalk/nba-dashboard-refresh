@@ -1,0 +1,54 @@
+# Public launcher. The private NBA code and state are never committed here.
+name: NBA source refresh
+on:
+  schedule:
+    - cron: '2-59/5 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/nba-refresh.yml]
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: nba-source-refresh
+  cancel-in-progress: false
+env:
+  NBA_RUNTIME_SHA256: a1720a75b7cce9932862a6777f7ef645f2261b15edba05a6aee539334a4b247b
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Run the owner-approved private source refresh
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, io, json, os, pathlib, subprocess, sys, tarfile
+          from urllib.parse import urlencode
+          from urllib.request import Request, urlopen
+          endpoint='https://codex-nbatlt.vercel.app/api/nba-cloud'
+          auth_url=os.environ['ACTIONS_ID_TOKEN_REQUEST_URL']+'&'+urlencode({'audience':endpoint})
+          with urlopen(Request(auth_url,headers={'Authorization':'Bearer '+os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN']}),timeout=30) as response:
+              token=json.load(response)['value']
+          headers={'Authorization':'Bearer '+token,'Cache-Control':'no-cache'}
+          with urlopen(Request(endpoint+'?operation=snapshot',headers=headers),timeout=60) as response:
+              manifest=json.load(response)
+          item=manifest['runtime']
+          if item['sha256']!=os.environ['NBA_RUNTIME_SHA256']:raise ValueError('The runtime requires owner approval.')
+          with urlopen(Request(endpoint+'?operation=object&sha256='+item['sha256'],headers=headers),timeout=60) as response:
+              raw=response.read()
+          if len(raw)!=item['size'] or hashlib.sha256(raw).hexdigest()!=item['sha256']:raise ValueError('Runtime integrity failed.')
+          target=pathlib.Path('private-runtime').resolve()
+          with tarfile.open(fileobj=io.BytesIO(raw),mode='r:gz') as archive:
+              members=archive.getmembers()
+              if sum(member.size for member in members)>500000000:raise ValueError('Runtime exceeds its expansion bound.')
+              if any(not member.isfile() or not (target/member.name).resolve().is_relative_to(target) for member in members):raise ValueError('Unsafe runtime.')
+              archive.extractall(target,members=members,filter='data')
+          root=target/'BettingSystem'
+          subprocess.run([sys.executable,'-m','pip','install','--quiet','--disable-pip-version-check','-r',str(root/'requirements-nba-cloud-fast.txt')],check=True)
+          result=subprocess.run([sys.executable,str(root/'tools/run_nba_cloud.py'),'--mode','refresh'],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
+          if result.returncode:raise RuntimeError('Source refresh did not complete. The last verified dashboard remains live.')
+          print('Source refresh completed; original source timestamps and release gates remain controlling.')
+          PY
