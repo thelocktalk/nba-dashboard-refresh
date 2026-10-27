@@ -2,7 +2,7 @@
 name: NBA source refresh
 on:
   schedule:
-    - cron: '2 * * * *'
+    - cron: '11 * * * *'
     - cron: '23 4 1 * *'
   workflow_dispatch:
     inputs:
