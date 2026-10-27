@@ -17,7 +17,7 @@ permissions:
   contents: read
   id-token: write
 env:
-  NBA_RUNTIME_SHA256: a1720a75b7cce9932862a6777f7ef645f2261b15edba05a6aee539334a4b247b
+  NBA_RUNTIME_SHA256: 0ca6c67becd06d5ed7f231d5eaa02038756a8f50cc646c96780dd2e736f934ac
 jobs:
   refresh:
     if: github.event.schedule != '23 4 1 * *' && inputs.maintenance != true
