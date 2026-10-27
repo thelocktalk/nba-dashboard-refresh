@@ -10,7 +10,7 @@ A capped native fallback covers stale updates. Failed updates retain the last ve
 
 A separate monthly maintenance job updates only `scheduler-activity.txt`, keeping the active repository from triggering GitHub's inactivity rule. That job has no private-application OIDC permission.
 
-The handoff job has only `actions: write` in this scheduler repository. Its automatically issued GitHub token expires when that job ends. It has no OIDC or repository-content permission and never downloads the private application. Successor runs retain their public predecessor run ID for verification. Failed or cancelled workers do not create a rapid retry loop; the last verified dashboard, hourly backup and capped native fallback remain available.
+The handoff job has only `actions: write` in this scheduler repository. Its automatically issued GitHub token expires when that job ends. It has no OIDC or repository-content permission and never downloads the private application. It makes at most three dispatch attempts for transient network/server failures; authentication errors remain explicit. Successor runs retain their public predecessor run ID for verification. Failed or cancelled workers do not create a rapid retry loop; the last verified dashboard, hourly backup and capped native fallback remain available.
 
 A reviewed push containing `[verify-continuation]` exercises the real worker and handoff with two source ticks. Its automatically queued successor uses the normal two-hour configuration.
 
