@@ -22,13 +22,15 @@ permissions:
   contents: read
   id-token: write
 env:
+  ODDS_PROVIDER_MODE: free
+  NBA_OWNER_REVIEW_RUNTIME_SHA256: 6a71a36bef002fef2bc005f6b1c3dc788aba8bdd686376292251e45b32eab0c7
   NBA_RUNTIME_SHA256: 0ca6c67becd06d5ed7f231d5eaa02038756a8f50cc646c96780dd2e736f934ac
 jobs:
   refresh:
     if: github.event.schedule != '23 4 1 * *' && inputs.maintenance != true
     concurrency:
       group: nba-source-refresh
-      cancel-in-progress: false
+      cancel-in-progress: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 126
     steps:
@@ -51,8 +53,8 @@ jobs:
               with urlopen(Request(endpoint+'?operation=snapshot',headers=headers),timeout=60) as response:
                   return json.load(response),headers
           manifest,headers=read_manifest()
-          item=manifest['runtime']
-          if item['sha256']!=os.environ['NBA_RUNTIME_SHA256']:raise ValueError('The runtime requires owner approval.')
+          item=manifest.get('owner_review_runtime') or manifest['runtime']
+          if item['sha256']!=os.environ['NBA_OWNER_REVIEW_RUNTIME_SHA256' if manifest.get('owner_review_runtime') else 'NBA_RUNTIME_SHA256']:raise ValueError('The runtime requires owner approval.')
           with urlopen(Request(endpoint+'?operation=object&sha256='+item['sha256'],headers=headers),timeout=60) as response:
               raw=response.read()
           if len(raw)!=item['size'] or hashlib.sha256(raw).hexdigest()!=item['sha256']:raise ValueError('Runtime integrity failed.')
@@ -69,7 +71,7 @@ jobs:
           max_ticks=2 if os.environ.get('NBA_HANDOFF_PROBE')=='1' else 25
           for tick in range(max_ticks):
               latest,_=read_manifest()
-              if latest['runtime']['sha256']!=item['sha256']:
+              if (latest.get('owner_review_runtime') or latest['runtime'])['sha256']!=item['sha256']:
                   print('A new owner-approved runtime is ready; this worker is stopping for its successor.',flush=True)
                   break
               environment={**os.environ,'GITHUB_RUN_ATTEMPT':attempt+'_t'+str(tick).zfill(2)}
