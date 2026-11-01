@@ -23,8 +23,8 @@ permissions:
   id-token: write
 env:
   ODDS_PROVIDER_MODE: free
-  NBA_OWNER_REVIEW_RUNTIME_SHA256: bba751827fcac87a2df26916645039ec2ae8a53fd7af0b3687e85f02ae4429e8
-  NBA_RUNTIME_SHA256: ea64a4af990f7ff89bf9d7fec5e2322ec33cc73d296fb5c7da946dc23c2f27d7
+  NBA_OWNER_REVIEW_RUNTIME_SHA256: 56bf79f686493ac91f7d86e0b63134e84e8adc402b7bb6710a4dc6fce23c726a
+  NBA_RUNTIME_SHA256: 56bf79f686493ac91f7d86e0b63134e84e8adc402b7bb6710a4dc6fce23c726a
 jobs:
   refresh:
     if: github.event.schedule != '23 4 1 * *' && inputs.maintenance != true
