@@ -24,7 +24,7 @@ permissions:
 env:
   ODDS_PROVIDER_MODE: free
   NBA_OWNER_REVIEW_RUNTIME_SHA256: bba751827fcac87a2df26916645039ec2ae8a53fd7af0b3687e85f02ae4429e8
-  NBA_RUNTIME_SHA256: 0ca6c67becd06d5ed7f231d5eaa02038756a8f50cc646c96780dd2e736f934ac
+  NBA_RUNTIME_SHA256: ea64a4af990f7ff89bf9d7fec5e2322ec33cc73d296fb5c7da946dc23c2f27d7
 jobs:
   refresh:
     if: github.event.schedule != '23 4 1 * *' && inputs.maintenance != true
